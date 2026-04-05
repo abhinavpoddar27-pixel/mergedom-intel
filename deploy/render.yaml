@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mergedom-intel
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8000"
+      - fromGroup: mergedom-secrets

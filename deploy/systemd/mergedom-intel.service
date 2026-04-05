@@ -1,0 +1,26 @@
+[Unit]
+Description=Mergedom UA Intelligence System
+After=network.target
+
+[Service]
+Type=simple
+User=mergedom
+Group=mergedom
+WorkingDirectory=/opt/mergedom-intel
+EnvironmentFile=/opt/mergedom-intel/.env
+ExecStart=/opt/mergedom-intel/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mergedom-intel
+
+[Install]
+WantedBy=multi-user.target
