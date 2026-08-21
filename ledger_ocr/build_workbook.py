@@ -123,6 +123,16 @@ C_ENTRIES, C_OKCNT, C_MIN, C_MAX, C_AVG, C_PAIRS, C_PDIFF = (TL + 1, TL + 2, TL 
                                                              TL + 4, TL + 5, TL + 6, TL + 7)
 LAST = C_PDIFF
 
+# Display precision per numeric row, matching the convention the chemist uses on
+# the form.  This pads trailing zeros only - no value is altered.
+CSD_NUMFMT = {
+    "As is brix (Bev.)": "0.00",
+    "% Acidity": "0.00",
+    "Pressure": "0",
+    "Temperature": "0.0",
+    "G.V.": "0.0",
+}
+
 CSD_FLAGS = {
     ("CSD 20-08-2026", "Temperature", 8): (
         "AMBIGUITY / SOURCE ANOMALY - 6.1 C.\n"
@@ -188,10 +198,12 @@ def build_csd(wb, rep):
         shade = FILL_BAND if r % 2 else None
         put(ws, row, 1, pname, F_LBL, C_LEFT, shade)
         put(ws, row, 2, freq, F_SMALL, C_LEFTW, shade)
+        nf = CSD_NUMFMT.get(pname)
         for i in range(NT):
             v = rep["rows"][pname][i]
             cell = put(ws, row, T0 + i, v,
-                       F_B, C_RIGHT if kind == "num" else C_CTR, shade)
+                       F_B, C_RIGHT if kind == "num" else C_CTR, shade,
+                       fmt=nf if kind == "num" else None)
             key = (rep["sheet"], pname, i)
             if key in CSD_FLAGS:
                 flag(cell, CSD_FLAGS[key])
@@ -208,7 +220,8 @@ def build_csd(wb, rep):
             put(ws, row, C_OKCNT, "", F_B, C_CTR, shade)
             for col, fn in ((C_MIN, "MIN"), (C_MAX, "MAX"), (C_AVG, "AVERAGE")):
                 put(ws, row, col, f'=IF(COUNT({rng})=0,"",{fn}({rng}))',
-                    F_TOT, C_RIGHT, shade, fmt="0.00")
+                    F_TOT, C_RIGHT, shade,
+                    fmt="0.00" if fn == "AVERAGE" else (nf or "0.00"))
             put(ws, row, C_PAIRS,
                 f'=SUMPRODUCT({mask}*({left}<>"")*({right}<>""))',
                 F_TOT, C_RIGHT, shade)
@@ -291,6 +304,10 @@ def build_csd(wb, rep):
         "(the test was not due at that interval).   OK = written as OK.",
         "The 24-hour row under the printed times is our addition; the form prints "
         "12-hour times with no am/pm marker.",
+        "Numeric rows are displayed to a fixed number of decimals matching the form's own "
+        "convention (brix and acidity 2 dp, temperature and G.V. 1 dp, pressure whole "
+        "numbers). Where the chemist omitted a trailing zero the stored value is unchanged "
+        "- only its display is padded.",
         "Entries / OK count / Min / Max / Average / pair columns are live formulas over "
         "the time columns to their left - correct any reading and they re-derive.",
         "“:00/:30 pairs” counts the paired readings actually written; "
@@ -414,9 +431,12 @@ def build_torque(wb, rep):
         for h in range(NH):
             v = heads[h][0] if heads else None
             rt = heads[h][2] if heads else None
-            c1 = put(ws, row, TH0 + h, v, F_B, C_RIGHT if isinstance(v, (int, float)) else C_CTR, shade)
+            c1 = put(ws, row, TH0 + h, v, F_B,
+                     C_RIGHT if isinstance(v, (int, float)) else C_CTR, shade,
+                     fmt="0.0" if isinstance(v, (int, float)) else None)
             put(ws, row + 1, TH0 + h, rt, F_B,
-                C_RIGHT if isinstance(rt, (int, float)) else C_CTR, shade)
+                C_RIGHT if isinstance(rt, (int, float)) else C_CTR, shade,
+                fmt="0.0" if isinstance(rt, (int, float)) else None)
             key = (rep["sheet"], t, h + 1)
             if key in TORQUE_FLAGS:
                 flag(c1, TORQUE_FLAGS[key])
